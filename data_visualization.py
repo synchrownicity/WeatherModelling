@@ -6,7 +6,3 @@ feature_cols = df.shape[1]-1
 
 Y = df.iloc[:,-1]
 X = df.iloc[:, 0:feature_cols]
-
-adadasd var 1
-
-aa
