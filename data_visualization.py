@@ -81,7 +81,7 @@ def standardiseData(X):
     #return X_clean, Y_clean
 
 
-# outlier detection using IQR
+# outlier detection before transformation using IQR
 print(detect_out(X)[1])
 
 # feature scaling
@@ -91,9 +91,10 @@ Y_norm = normalisation(Y)
 # feature transformation (Yeo Johnson)
 feature_transform(X_norm, detect_out(X_norm)[0])
 
-# validation using Z-score (since data is more normalized)
+# validation of outlier after transformation using Z-score and IQR
 X_standard, Y_standard = standardiseData(X_norm)[0], standardiseData(Y_norm)[0]
-print(standardiseData(X_norm)[1])
+print(detect_out(X_norm)[1]) # by IQR
+print(standardiseData(X_norm)[1]) # by z-score
 # print(len(np.where((X_standard < -3) | (X_standard > 3))))
 
 
