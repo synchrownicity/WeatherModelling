@@ -76,7 +76,9 @@ def normalisation(X):
     return X_norm
 
 X_standard, Y_standard = standardiseData(X), standardiseData(Y)
+
 X_norm = normalisation(X)
+Y_norm = normalisation(Y)
 # Remove outliers beyond a certain threshold -3 and 3
 X_clean, Y_clean = remove_outliers(X_standard, Y_standard, 3)
 
