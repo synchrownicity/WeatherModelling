@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import scipy.stats as stats
+from scipy.stats import stats as stats, yeojohnson
 
 pd_df = pd.read_csv("weather_data.csv")
 df = pd_df.to_numpy()
@@ -29,15 +29,16 @@ def detect_out(data: np.ndarray) -> list:
     return outliers
 
 # log feature datapoints if that given feature contains outliers
-def feature_log(data: np.ndarray, outliers: list) -> np.ndarray:
+def feature_transform(data: np.ndarray, outliers: list) -> np.ndarray:
+    lambda_values = []
     for feature_idx in range(len(outliers)):
         if outliers[feature_idx]:
             feature = data[:, feature_idx]
-            if np.any(feature == 0):
-                # add a small value (1e-10) to entire data set
-                feature = feature + 1e-10
-            logged_feature = np.log(feature)
-            data[:, feature_idx] = logged_feature
+            print(feature)
+            x = feature.astype(np.float64, copy=False)
+            # data[:, feature_idx] = transformed_data
+            # lambda_values.append(lambda_value)
+    return lambda_values
 
 # QQ-plots after log transformation
 def qq_plot(data: np.ndarray):
@@ -48,7 +49,11 @@ def qq_plot(data: np.ndarray):
     plt.grid(True)
     plt.show()
 
-feature_log(X, detect_out(X))
+# feature_transform(X, detect_out(X))
+# plt.boxplot(X)
+# plt.show()
 # can try plotting X[:, i], i from 0 to 5
-qq_plot(X[:, 0])
+# qq_plot(X[:, 0])
 
+a, b = yeojohnson(X[:, 2])
+print(a, b)
