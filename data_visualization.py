@@ -58,14 +58,14 @@ qq_plot(X[:, 1])
 def standardiseData(X):
     return stats.zscore(X)
 
-def remove_outliers(X, Y , k):
-    X_standard = standardiseData(X)
-    outliers = np.any(np.abs(X_standard) > k, axis=1)
+#def remove_outliers(X, Y , k):
+    #X_standard = standardiseData(X)
+    #outliers = np.any(np.abs(X_standard) > k, axis=1)
 
-    X_clean = X[~outliers]
-    Y_clean = Y[~outliers]
+    #X_clean = X[~outliers]
+    #Y_clean = Y[~outliers]
 
-    return X_clean, Y_clean
+    #return X_clean, Y_clean
 
 # Normalisation 
 def normalisation(X):
@@ -79,7 +79,5 @@ X_standard, Y_standard = standardiseData(X), standardiseData(Y)
 
 X_norm = normalisation(X)
 Y_norm = normalisation(Y)
-# Remove outliers beyond a certain threshold -3 and 3
-X_clean, Y_clean = remove_outliers(X_standard, Y_standard, 3)
 
 
