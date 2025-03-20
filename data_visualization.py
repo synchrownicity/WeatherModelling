@@ -67,8 +67,17 @@ def remove_outliers(X, Y , k):
 
     return X_clean, Y_clean
 
-X_clean, Y_clean = standardiseData(X, Y)
+# Normalisation 
+def normalisation(X):
+    X_min = X.min(axis = 0)
+    X_max = X.max(axis = 0)
 
-X_clean
+    X_norm = (X - X_min)/(X_max - X_min)
+    return X_norm
+
+X_standard, Y_standard = standardiseData(X), standardiseData(Y)
+X_norm = normalisation(X)
+# Remove outliers beyond a certain threshold -3 and 3
+X_clean, Y_clean = remove_outliers(X_standard, Y_standard, 3)
 
 
