@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
 
+
+
 pd_df = pd.read_csv("weather_data.csv")
 df = pd_df.to_numpy()
 N = df.shape[0]
@@ -16,6 +18,7 @@ def detect_out(data: np.ndarray) -> list:
     cols = data.shape[1]
     outliers = []
     count = []
+
     def column_out(data_col, out=outliers):
         Q1 = np.percentile(data_col, 25)
         Q3 = np.percentile(data_col, 75)
@@ -50,6 +53,18 @@ def feature_transform(data: np.ndarray, outliers: list) -> np.ndarray:
             # Yeo Johnson shifted the min and max values out of 0 to 1 range, hence normalization is performed again
             data[:, feature_idx] = normalisation(transformed_data)
             lambda_values.append(lambda_value)
+    return outliers
+
+# log feature datapoints if that given feature contains outliers
+def feature_transform(data: np.ndarray, outliers: list) -> np.ndarray:
+    lambda_values = []
+    for feature_idx in range(len(outliers)):
+        if outliers[feature_idx]:
+            feature = data[:, feature_idx]
+            print(feature)
+            x = feature.astype(np.float64, copy=False)
+            # data[:, feature_idx] = transformed_data
+            # lambda_values.append(lambda_value)
     return lambda_values
 
 # QQ-plots after log transformation
@@ -106,3 +121,12 @@ print(standardiseData(X_norm)[1]) # by z-score
 # can see on boxplot too --> yeojohnson on normalized data produce better distribution
 # plt.boxplot(X_norm)
 # plt.show()
+
+# feature_transform(X, detect_out(X))
+# plt.boxplot(X)
+# plt.show()
+# can try plotting X[:, i], i from 0 to 5
+# qq_plot(X[:, 0])
+
+a, b = yeojohnson(X[:, 2])
+print(a, b)
