@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
-
-
+from statsmodels.tsa.seasonal import STL
 
 pd_df = pd.read_csv("weather_data.csv")
 df = pd_df.to_numpy()
@@ -13,12 +12,17 @@ feature_cols = df.shape[1]-1
 Y = df[:,-1].reshape(-1,1)
 X = df[:, 0:feature_cols]
 
-# Detect outliers that lies outside 1.5*IQR --> returns a list of outlier indices for each feature
+# Detect outliers that lies outside 1.5*IQR
 def detect_out(data: np.ndarray) -> list:
+    """
+    data: numpy array, shape = [N, D] or [D]
+    return:
+        list of outlier indices, shape [K, D]
+        list of outlier count in each feature, shape [K]
+    """
     cols = data.shape[1]
     outliers = []
     count = []
-
     def column_out(data_col, out=outliers):
         Q1 = np.percentile(data_col, 25)
         Q3 = np.percentile(data_col, 75)
@@ -27,56 +31,53 @@ def detect_out(data: np.ndarray) -> list:
         curr_out = list(np.where((data_col<lower_bound) | (data_col>upper_bound))[0])
         out.append(curr_out)
         count.append(len(curr_out))
-
     for i in range(cols):
         col = data[:, i]
         column_out(col)
     return outliers, count
 
-# Normalisation
-def normalisation(X):
-    X_min = X.min(axis = 0)
-    X_max = X.max(axis = 0)
-
-    X_norm = (X - X_min)/(X_max - X_min)
-    return X_norm
-
-# Function transform feature datapoints using Yeo Johnson if that given feature contains outliers.
-# Function returns maximum log-likelihood parameter of Yeo Johnson
-def feature_transform(data: np.ndarray, outliers: list) -> np.ndarray:
+# Yeo Johnson feature transformation
+def feature_transform(data: np.ndarray, outliers: list) -> list:
     lambda_values = []
+    transformed_arr = data.copy()
     for feature_idx in range(len(outliers)):
         # only transform data if there are outliers
         if outliers[feature_idx]:
             feature = data[:, feature_idx]
-            transformed_data, lambda_value = yeojohnson(feature)
-            # Yeo Johnson shifted the min and max values out of 0 to 1 range, hence normalization is performed again
-            data[:, feature_idx] = normalisation(transformed_data)
+            # the 3rd feature, mean_sea_level_pressure's values are too high, hence we scaled it down by 1000x
+            if feature_idx == 2:
+                transformed_data, lambda_value = yeojohnson(feature / 1000)
+            else:
+                transformed_data, lambda_value = yeojohnson(feature)
+            transformed_arr[:, feature_idx] = transformed_data
             lambda_values.append(lambda_value)
-    return outliers
+    return transformed_arr, lambda_values
 
-# log feature datapoints if that given feature contains outliers
-def feature_transform(data: np.ndarray, outliers: list) -> np.ndarray:
-    lambda_values = []
-    for feature_idx in range(len(outliers)):
-        if outliers[feature_idx]:
-            feature = data[:, feature_idx]
-            print(feature)
-            x = feature.astype(np.float64, copy=False)
-            # data[:, feature_idx] = transformed_data
-            # lambda_values.append(lambda_value)
-    return lambda_values
+def seasonal_decompostion(data: np.ndarray, seasons: int):
+    cols = data.shape[1]
+    decomposed_feature = {}
+    for feature_idx in range(cols):
+        feature = data[:, feature_idx]
+        stl = STL(feature, seasonal=seasons, robust=True).fit()
+        trend = stl.trend
+        seasonal = stl.seasonal
+        residual = stl.resid
+        decomposed_feature[feature_idx] = [trend, seasonal, residual]
+    return decomposed_feature
 
-# QQ-plots after log transformation
-def qq_plot(data: np.ndarray):
-    probplot(data, dist="norm", plot=plt)
-    plt.title('Normal Q-Q plot')
-    plt.xlabel('Theoretical quantiles')
-    plt.ylabel('Ordered Values')
-    plt.grid(True)
-    plt.show()
 
-# Z-score standardisation
+
+# Remove outliers
+def remove_outliers(X, Y, k):
+    X_standard = standardiseData(X)
+    outliers = np.any(np.abs(X_standard) > k, axis=1)
+
+    X_clean = X[~outliers]
+    Y_clean = Y[~outliers]
+
+    return X_clean, Y_clean
+
+# Z-score/ standardisation
 def standardiseData(X):
     count = []
     standardised = zscore(X)
@@ -86,33 +87,52 @@ def standardiseData(X):
         count.append(len(outlier_idx))
     return zscore(X), count
 
-#def remove_outliers(X, Y , k):
-    #X_standard = standardiseData(X)
-    #outliers = np.any(np.abs(X_standard) > k, axis=1)
+# Normalisation
+def normalisation(X):
+    X_min = X.min(axis = 0)
+    X_max = X.max(axis = 0)
 
-    #X_clean = X[~outliers]
-    #Y_clean = Y[~outliers]
+    X_norm = (X - X_min)/(X_max - X_min)
+    return X_norm
 
-    #return X_clean, Y_clean
+# QQ-plots
+def qq_plot(data: np.ndarray):
+    probplot(data, dist="norm", plot=plt)
+    plt.title('Normal Q-Q plot')
+    plt.xlabel('Theoretical quantiles')
+    plt.ylabel('Ordered Values')
+    plt.grid(True)
+    plt.show()
+
+def multi_plots(data):
+    col = data.shape[1]
+    fig, axs = plt.subplots(col, 1, figsize=(10, 12))
+    ax_lst = axs.flat
+    # Flatten axs (to iterate over it easily, even if 2D)
+    for i in range(col):
+        ax = ax_lst[i]
+        feature = data[:, i]
+        ax.plot(feature)
+    plt.tight_layout()
+    plt.show()
 
 
 # outlier detection before transformation using IQR
-print(detect_out(X)[1])
-
-# feature scaling
-X_norm = normalisation(X)
-Y_norm = normalisation(Y)
+outliers_before_transformation = detect_out(X)[1]
+print(outliers_before_transformation)
 
 # feature transformation (Yeo Johnson)
-feature_transform(X_norm, detect_out(X_norm)[0])
+transformed_X, lambda_values = feature_transform(X, detect_out(X)[0])
 
 # validation of outlier after transformation using Z-score and IQR
-X_standard, Y_standard = standardiseData(X_norm)[0], standardiseData(Y_norm)[0]
-print(detect_out(X_norm)[1]) # by IQR
-print(standardiseData(X_norm)[1]) # by z-score
-# print(len(np.where((X_standard < -3) | (X_standard > 3))))
+outliers_after_transformation = detect_out(transformed_X)[1]
+print(outliers_after_transformation)
 
-
+# visualise normal distribution
+# multi_plots(X)
+# multi_plots(transformed_X)
+print(X[:, [0, 2,3,4]])
+print(seasonal_decompostion(X[:, [0, 2,3,4]], 8000))
 
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
@@ -127,6 +147,3 @@ print(standardiseData(X_norm)[1]) # by z-score
 # plt.show()
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
-
-a, b = yeojohnson(X[:, 2])
-print(a, b)
