@@ -189,3 +189,21 @@ print(np.std(transformed_X, axis=0))
 # plt.show()
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
+
+
+
+### SEASONALITY ANALYSIS ###
+pd_df['timestamp'] = pd.date_range(start="2020-01-01", periods = len(pd_df), freq = "H")
+pd_df.set_index('timestamp', inplace = True)
+
+humidity_series = pd_df['relative_humidity']
+
+# Choose period (e.g., 24 for hourly, 7 for daily weekly, etc.)
+stl = STL(humidity_series, period=24, robust=True)
+result = stl.fit()
+
+# Plot the decomposition
+result.plot()
+plt.suptitle("Seasonal Decomposition of Relative Humidity", fontsize=16)
+plt.tight_layout()
+plt.show()
