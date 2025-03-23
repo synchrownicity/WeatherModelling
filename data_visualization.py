@@ -13,6 +13,14 @@ feature_cols = df.shape[1]-1
 Y = df[:,-1].reshape(-1,1)
 X = df[:, 0:feature_cols]
 
+# Normalisation
+def normalisation(X):
+    X_min = X.min(axis = 0)
+    X_max = X.max(axis = 0)
+
+    X_norm = (X - X_min)/(X_max - X_min)
+    return X_norm
+
 # Detect outliers that lies outside 1.5*IQR
 def detect_out(data: np.ndarray) -> list:
     """
@@ -22,59 +30,59 @@ def detect_out(data: np.ndarray) -> list:
         list of outlier count in each feature, shape [K]
     """
     cols = data.shape[1]
-    outliers = []
+    outliers = set()
     count = []
     def column_out(data_col, out=outliers):
         Q1 = np.percentile(data_col, 25)
         Q3 = np.percentile(data_col, 75)
         IQR = Q3-Q1
         upper_bound, lower_bound = Q3+1.5*IQR, Q1-1.5*IQR
-        curr_out = list(np.where((data_col<lower_bound) | (data_col>upper_bound))[0])
-        out.append(curr_out)
+        curr_out = set(np.where((data_col<lower_bound) | (data_col>upper_bound))[0])
         count.append(len(curr_out))
+        return curr_out
     for i in range(cols):
         col = data[:, i]
-        column_out(col)
+        outliers = outliers | column_out(col)
     return outliers, count
 
 # Yeo Johnson feature transformation
-def feature_transform(data: np.ndarray, outliers: list) -> list:
+def feature_transform(data: np.ndarray, outlier_count: list):
     lambda_values = []
     transformed_arr = data.copy()
-    for feature_idx in range(len(outliers)):
+    for feature_idx in range(len(outlier_count)):
         # only transform data if there are outliers
-        if outliers[feature_idx]:
+        if outlier_count[feature_idx]:
             feature = data[:, feature_idx]
             # the 3rd feature, mean_sea_level_pressure's values are too high, hence we scaled it down by 1000x
             if feature_idx == 2:
-                transformed_data, lambda_value = yeojohnson(feature / 1000)
+                transformed_data, lambda_value = yeojohnson(normalisation(feature))
             else:
                 transformed_data, lambda_value = yeojohnson(feature)
             transformed_arr[:, feature_idx] = transformed_data
             lambda_values.append(lambda_value)
     return transformed_arr, lambda_values
 
-def seasonal_decompostion(data: np.ndarray, seasons: int):
+def seasonal_decompostion(data: np.ndarray, period: int):
     cols = data.shape[1]
-    decomposed_feature = {}
+    trend_arr, seasonal_arr, residual_arr = [], [], []
     for feature_idx in range(cols):
         feature = data[:, feature_idx]
-        stl = STL(feature, seasonal=seasons, robust=True).fit()
-        trend = stl.trend
-        seasonal = stl.seasonal
-        residual = stl.resid
-        decomposed_feature[feature_idx] = [trend, seasonal, residual]
-    return decomposed_feature
+        stl = STL(feature, period=period, robust=True).fit()
+        trend_arr.append(stl.trend)
+        seasonal_arr.append(stl.seasonal)
+        residual_arr.append(stl.resid)
+    trend = np.array(trend_arr).T
+    seasonal = np.array(seasonal_arr).T
+    residual = np.array(residual_arr).T
+
+    return trend, seasonal, residual
 
 
 
 # Remove outliers
-def remove_outliers(X, Y, k):
-    X_standard = standardiseData(X)
-    outliers = np.any(np.abs(X_standard) > k, axis=1)
-
-    X_clean = X[~outliers]
-    Y_clean = Y[~outliers]
+def remove_outliers(X, Y, outlier_idx):
+    X_clean = np.delete(X, list(outlier_idx), axis=0)
+    Y_clean = np.delete(Y, list(outlier_idx), axis=0)
 
     return X_clean, Y_clean
 
@@ -88,13 +96,7 @@ def standardiseData(X):
         count.append(len(outlier_idx))
     return zscore(X), count
 
-# Normalisation
-def normalisation(X):
-    X_min = X.min(axis = 0)
-    X_max = X.max(axis = 0)
 
-    X_norm = (X - X_min)/(X_max - X_min)
-    return X_norm
 
 # QQ-plots
 def qq_plot(data: np.ndarray):
@@ -120,20 +122,26 @@ def multi_plots(data):
 
 # outlier detection before transformation using IQR
 outliers_before_transformation = detect_out(X)[1]
-print(outliers_before_transformation)
+# print(outliers_before_transformation)
 
 # feature transformation (Yeo Johnson)
-transformed_X, lambda_values = feature_transform(X, detect_out(X)[0])
+transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
 
+print(np.std(transformed_X, axis=0))
+# print(lambda_values)
 # validation of outlier after transformation using Z-score and IQR
-outliers_after_transformation = detect_out(transformed_X)[1]
-print(outliers_after_transformation)
+outlier_count_after_transformation = detect_out(transformed_X)[1]
+# print(outliers_after_transformation)
+
+outlier_idx_after_transformation = detect_out(transformed_X)[0]
+final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
 
 # visualise normal distribution
 # multi_plots(X)
-# multi_plots(transformed_X)
-print(X[:, [0, 2,3,4]])
-print(seasonal_decompostion(X[:, [0, 2,3,4]], 8000))
+# multi_plots(final_X)
+# print(X[:, [0, 2,3,4]])
+# decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
+# multi_plots(decomposed_X)
 
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
@@ -149,12 +157,20 @@ print(seasonal_decompostion(X[:, [0, 2,3,4]], 8000))
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
 
+
 #heatmaps
 def heatmaps(data):
     df = pd.DataFrame(data)
     corr = df.corr()
-    sns.heatmap(corr, annot=True)
+    
+    variables = ["temperature", "wind speed", "mean sea level pressure",
+             "surface solar radiation", "surface thermal radiation", "total cloud cover"]
+    sns.heatmap(corr, annot=True, fmt = ".2f", cmap = 'coolwarm',
+                xticklabels= variables, yticklabels=variables)
+    plt.tight_layout() 
     plt.title("Correlation Heatmap of Weather Data")
+    
+    plt.ion()
     plt.show()
 
-heatmaps(pd_df)
+heatmaps(final_X)
