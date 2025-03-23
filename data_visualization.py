@@ -157,7 +157,8 @@ def compute_vif(data, column_names):
 def compare_vif_before_after(data, column_names):
     vif_before = compute_vif(data, column_names)
 
-    transformed_X, lambda_values = feature_transform(X, detect_out(X)[0])
+    _, outlier_counts = detect_out(data)
+    transformed_X, _ = feature_transform(data, outlier_counts)
 
     vif_after = compute_vif(transformed_X, column_names)
 
