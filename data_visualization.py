@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
 from statsmodels.tsa.seasonal import STL
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
 
 pd_df = pd.read_csv("weather_data.csv")
 df = pd_df.to_numpy()
@@ -96,7 +98,7 @@ def standardiseData(X):
     return zscore(X), count
 
 
-
+"""
 # QQ-plots
 def qq_plot(data: np.ndarray):
     probplot(data, dist="norm", plot=plt)
@@ -117,7 +119,7 @@ def multi_plots(data):
         ax.plot(feature)
     plt.tight_layout()
     plt.show()
-
+"""
 
 # outlier detection before transformation using IQR
 outliers_before_transformation = detect_out(X)[1]
@@ -131,7 +133,7 @@ print(np.std(transformed_X, axis=0))
 # validation of outlier after transformation using Z-score and IQR
 outlier_count_after_transformation = detect_out(transformed_X)[1]
 # print(outliers_after_transformation)
-
+"""
 outlier_idx_after_transformation = detect_out(transformed_X)[0]
 final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
 
@@ -141,6 +143,37 @@ final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transform
 # print(X[:, [0, 2,3,4]])
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
+"""
+
+# Multicollinearity Check using Variance Inflation Factor
+def compute_vif(data, column_names):
+    df = pd.DataFrame(data, columns = column_names)
+    X = add_constant(df)
+    vif = pd.DataFrame()
+    vif["feature"] = X.columns
+    vif["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    return vif
+
+def compare_vif_before_after(data, column_names):
+    vif_before = compute_vif(data, column_names)
+
+    transformed_X, lambda_values = feature_transform(X, detect_out(X)[0])
+
+    vif_after = compute_vif(transformed_X, column_names)
+
+    comparison = pd.merge(vif_before, vif_after, on = "feature", suffixes = ("_before", "_after"))
+    return comparison
+
+    
+
+# VIF Check
+columns = pd_df.columns.tolist()[:-1:1]
+print(columns)
+print(transformed_X.ndim)
+vif_result = compare_vif_before_after(X, columns)
+print(vif_result)
+
+print(np.std(transformed_X, axis=0))
 
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
