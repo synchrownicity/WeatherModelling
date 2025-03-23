@@ -31,7 +31,7 @@ def detect_out(data: np.ndarray) -> list:
     cols = data.shape[1]
     outliers = set()
     count = []
-    def column_out(data_col, out=outliers):
+    def column_out(data_col):
         Q1 = np.percentile(data_col, 25)
         Q3 = np.percentile(data_col, 75)
         IQR = Q3-Q1
@@ -75,8 +75,6 @@ def seasonal_decompostion(data: np.ndarray, period: int):
     residual = np.array(residual_arr).T
 
     return trend, seasonal, residual
-
-
 
 # Remove outliers
 def remove_outliers(X, Y, outlier_idx):
@@ -125,20 +123,24 @@ outliers_before_transformation = detect_out(X)[1]
 
 # feature transformation (Yeo Johnson)
 transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
+# print(np.std(transformed_X, axis=0))
 
-print(np.std(transformed_X, axis=0))
-# print(lambda_values)
+
 # validation of outlier after transformation using Z-score and IQR
 outlier_count_after_transformation = detect_out(transformed_X)[1]
-# print(outliers_after_transformation)
+# print(outlier_count_after_transformation)
+
 
 outlier_idx_after_transformation = detect_out(transformed_X)[0]
 final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
+final_X = normalisation(final_X)
+
+# print(detect_out(final_X)[1])
 
 # visualise normal distribution
 # multi_plots(X)
-# multi_plots(final_X)
-# print(X[:, [0, 2,3,4]])
+multi_plots(final_X)
+
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
 
