@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
 from statsmodels.tsa.seasonal import STL
+import seaborn as sns
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 
@@ -33,6 +34,7 @@ def detect_out(data: np.ndarray) -> list:
     cols = data.shape[1]
     outliers = set()
     count = []
+
     def column_out(data_col):
         Q1 = np.percentile(data_col, 25)
         Q3 = np.percentile(data_col, 75)
@@ -75,6 +77,53 @@ def seasonal_decompostion(data: np.ndarray, period: int):
     trend = np.array(trend_arr).T
     seasonal = np.array(seasonal_arr).T
     residual = np.array(residual_arr).T
+
+    return trend, seasonal, residual
+
+
+
+# Remove outliers
+def remove_outliers(X, Y, outlier_idx):
+    X_clean = np.delete(X, list(outlier_idx), axis=0)
+    Y_clean = np.delete(Y, list(outlier_idx), axis=0)
+
+    return X_clean, Y_clean
+
+# Z-score/ standardisation
+def standardiseData(X):
+    count = []
+    standardised = zscore(X)
+    for feature_idx in range(standardised.shape[1]):
+        feature = standardised[:, feature_idx]
+        outlier_idx = np.where((zscore(feature) < -3) | (zscore(feature) > 3))[0]
+        count.append(len(outlier_idx))
+    return zscore(X), count
+
+
+
+# QQ-plots
+def qq_plot(data: np.ndarray):
+    probplot(data, dist="norm", plot=plt)
+    plt.title('Normal Q-Q plot')
+    plt.xlabel('Theoretical quantiles')
+    plt.ylabel('Ordered Values')
+    plt.grid(True)
+    plt.show()
+
+def multi_plots(data):
+    col = data.shape[1]
+    fig, axs = plt.subplots(col, 1, figsize=(10, 12))
+    ax_lst = axs.flat
+    # Flatten axs (to iterate over it easily, even if 2D)
+    for i in range(col):
+        ax = ax_lst[i]
+        feature = data[:, i]
+        ax.plot(feature)
+    plt.tight_layout()
+    plt.show()
+
+
+=======
 
     return trend, seasonal, residual
 
@@ -141,11 +190,10 @@ final_X = normalisation(final_X)
 
 # visualise normal distribution
 # multi_plots(X)
-multi_plots(final_X)
+# multi_plots(final_X)
 
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
-"""
 
 # outlier detection before transformation using IQR
 outliers_before_transformation = detect_out(X)[1]
@@ -154,7 +202,7 @@ outliers_before_transformation = detect_out(X)[1]
 # feature transformation (Yeo Johnson)
 transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
 
-print(np.std(transformed_X, axis=0))
+# print(np.std(transformed_X, axis=0))
 # print(lambda_values)
 # validation of outlier after transformation using Z-score and IQR
 outlier_count_after_transformation = detect_out(transformed_X)[1]
@@ -162,7 +210,13 @@ outlier_count_after_transformation = detect_out(transformed_X)[1]
 
 outlier_idx_after_transformation = detect_out(transformed_X)[0]
 final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
-
+final_X = normalisa
+# visualise normal distribution
+# multi_plots(X)
+# multi_plots(final_X)
+# print(X[:, [0, 2,3,4]])
+# decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
+# multi_plots(decomposed_X)
 
 
 # Multicollinearity Check using Variance Inflation Factor
@@ -194,20 +248,23 @@ print(columns)
 vif_result = compute_vif(final_X, columns)
 print(vif_result)
 
-# can try plotting X[:, i], i from 0 to 5
-# qq_plot(X[:, 0])
-# qq_plot(X_norm[:, 1])
+#heatmaps
+def heatmaps(data):
+    df = pd.DataFrame(data)
+    corr = df.corr()
+    
+    variables = ["temperature", "wind speed", "mean sea level pressure",
+             "surface solar radiation", "surface thermal radiation", "total cloud cover"]
+    sns.heatmap(corr, annot=True, fmt = ".2f", cmap = 'coolwarm',
+                xticklabels= variables, yticklabels=variables)
+    plt.tight_layout() 
+    plt.title("Correlation Heatmap of Weather Data")
+    
+    plt.ion()
+    plt.show()
 
-# can see on boxplot too --> yeojohnson on normalized data produce better distribution
-# plt.boxplot(X_norm)
-# plt.show()
-
-# feature_transform(X, detect_out(X))
-# plt.boxplot(X)
-# plt.show()
-# can try plotting X[:, i], i from 0 to 5
-# qq_plot(X[:, 0])
-
+heatmaps(final_X)
+=======
 final_df = pd.DataFrame(final_X, columns=columns)
 
 ### SEASONALITY ANALYSIS ###
@@ -230,5 +287,4 @@ result.plot()
 plt.suptitle("Seasonal Decomposition of Temperature", fontsize=16)
 plt.tight_layout()
 plt.show()
-
 
