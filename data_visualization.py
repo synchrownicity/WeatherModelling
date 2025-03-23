@@ -145,6 +145,24 @@ final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transform
 # multi_plots(decomposed_X)
 """
 
+# outlier detection before transformation using IQR
+outliers_before_transformation = detect_out(X)[1]
+# print(outliers_before_transformation)
+
+# feature transformation (Yeo Johnson)
+transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
+
+print(np.std(transformed_X, axis=0))
+# print(lambda_values)
+# validation of outlier after transformation using Z-score and IQR
+outlier_count_after_transformation = detect_out(transformed_X)[1]
+# print(outliers_after_transformation)
+
+outlier_idx_after_transformation = detect_out(transformed_X)[0]
+final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
+
+
+
 # Multicollinearity Check using Variance Inflation Factor
 def compute_vif(data, column_names):
     df = pd.DataFrame(data, columns = column_names)
@@ -167,14 +185,12 @@ def compare_vif_before_after(data, column_names):
 
     
 
+
 # VIF Check
 columns = pd_df.columns.tolist()[:-1:1]
 print(columns)
-print(transformed_X.ndim)
-vif_result = compare_vif_before_after(X, columns)
+vif_result = compute_vif(final_X, columns)
 print(vif_result)
-
-print(np.std(transformed_X, axis=0))
 
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
@@ -190,20 +206,27 @@ print(np.std(transformed_X, axis=0))
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
 
-
+final_df = pd.DataFrame(final_X, columns=columns)
 
 ### SEASONALITY ANALYSIS ###
-pd_df['timestamp'] = pd.date_range(start="2020-01-01", periods = len(pd_df), freq = "H")
-pd_df.set_index('timestamp', inplace = True)
+final_df['timestamp'] = pd.date_range(start="2020-01-01", periods = len(final_df), freq = "H")
+final_df.set_index('timestamp', inplace = True)
 
-humidity_series = pd_df['relative_humidity']
+temperature_series = final_df['temperature']
 
 # Choose period (e.g., 24 for hourly, 7 for daily weekly, etc.)
-stl = STL(humidity_series, period=24, robust=True)
+stl = STL(temperature_series, period=8760, robust=True)
 result = stl.fit()
+
+seasonal_std = stl.seasonal.std()
+total_std = final_df["temperature"].std()
+strength = seasonal_std / total_std
+print(f"Seasonal strength (yearly): {strength:.2%}")
 
 # Plot the decomposition
 result.plot()
-plt.suptitle("Seasonal Decomposition of Relative Humidity", fontsize=16)
+plt.suptitle("Seasonal Decomposition of Temperature", fontsize=16)
 plt.tight_layout()
 plt.show()
+
+
