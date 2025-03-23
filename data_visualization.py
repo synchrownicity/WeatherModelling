@@ -141,7 +141,7 @@ final_X = normalisation(final_X)
 
 # visualise normal distribution
 # multi_plots(X)
-multi_plots(final_X)
+# multi_plots(final_X)
 
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
@@ -230,5 +230,5 @@ result.plot()
 plt.suptitle("Seasonal Decomposition of Temperature", fontsize=16)
 plt.tight_layout()
 plt.show()
-
+"""
 
