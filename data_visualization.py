@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
-
+import seaborn as sns
 
 
 pd_df = pd.read_csv("weather_data.csv")
@@ -130,3 +130,5 @@ print(standardiseData(X_norm)[1]) # by z-score
 
 a, b = yeojohnson(X[:, 2])
 print(a, b)
+
+#Heatmap
