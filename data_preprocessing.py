@@ -203,15 +203,15 @@ final_X = normalisation(final_X)
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
 
+if __name__ == "__main__":
+    # VIF Check
+    columns = pd_df.columns.tolist()[:-1:1]
+    print(columns)
+    vif_result = compute_vif(final_X, columns)
+    print(vif_result)
 
-# VIF Check
-columns = pd_df.columns.tolist()[:-1:1]
-print(columns)
-vif_result = compute_vif(final_X, columns)
-print(vif_result)
-
-heatmaps(final_X)
-final_df = pd.DataFrame(final_X, columns=columns)
+    heatmaps(final_X)
+    final_df = pd.DataFrame(final_X, columns=columns)
     
 
 
