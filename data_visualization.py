@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import yeojohnson, probplot, zscore
 from statsmodels.tsa.seasonal import STL
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
 
 pd_df = pd.read_csv("weather_data.csv")
 df = pd_df.to_numpy()
@@ -94,7 +96,7 @@ def standardiseData(X):
     return zscore(X), count
 
 
-
+"""
 # QQ-plots
 def qq_plot(data: np.ndarray):
     probplot(data, dist="norm", plot=plt)
@@ -115,7 +117,7 @@ def multi_plots(data):
         ax.plot(feature)
     plt.tight_layout()
     plt.show()
-
+"""
 
 # outlier detection before transformation using IQR
 outliers_before_transformation = detect_out(X)[1]
@@ -128,8 +130,8 @@ transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
 
 # validation of outlier after transformation using Z-score and IQR
 outlier_count_after_transformation = detect_out(transformed_X)[1]
-# print(outlier_count_after_transformation)
 
+# print(outlier_count_after_transformation)
 
 outlier_idx_after_transformation = detect_out(transformed_X)[0]
 final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
@@ -143,6 +145,54 @@ multi_plots(final_X)
 
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
+"""
+
+# outlier detection before transformation using IQR
+outliers_before_transformation = detect_out(X)[1]
+# print(outliers_before_transformation)
+
+# feature transformation (Yeo Johnson)
+transformed_X, lambda_values = feature_transform(X, detect_out(X)[1])
+
+print(np.std(transformed_X, axis=0))
+# print(lambda_values)
+# validation of outlier after transformation using Z-score and IQR
+outlier_count_after_transformation = detect_out(transformed_X)[1]
+# print(outliers_after_transformation)
+
+outlier_idx_after_transformation = detect_out(transformed_X)[0]
+final_X, final_y = remove_outliers(transformed_X, Y, outlier_idx_after_transformation)
+
+
+
+# Multicollinearity Check using Variance Inflation Factor
+def compute_vif(data, column_names):
+    df = pd.DataFrame(data, columns = column_names)
+    X = add_constant(df)
+    vif = pd.DataFrame()
+    vif["feature"] = X.columns
+    vif["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    return vif
+
+def compare_vif_before_after(data, column_names):
+    vif_before = compute_vif(data, column_names)
+
+    _, outlier_counts = detect_out(data)
+    transformed_X, _ = feature_transform(data, outlier_counts)
+
+    vif_after = compute_vif(transformed_X, column_names)
+
+    comparison = pd.merge(vif_before, vif_after, on = "feature", suffixes = ("_before", "_after"))
+    return comparison
+
+    
+
+
+# VIF Check
+columns = pd_df.columns.tolist()[:-1:1]
+print(columns)
+vif_result = compute_vif(final_X, columns)
+print(vif_result)
 
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
@@ -157,3 +207,28 @@ multi_plots(final_X)
 # plt.show()
 # can try plotting X[:, i], i from 0 to 5
 # qq_plot(X[:, 0])
+
+final_df = pd.DataFrame(final_X, columns=columns)
+
+### SEASONALITY ANALYSIS ###
+final_df['timestamp'] = pd.date_range(start="2020-01-01", periods = len(final_df), freq = "H")
+final_df.set_index('timestamp', inplace = True)
+
+temperature_series = final_df['temperature']
+
+# Choose period (e.g., 24 for hourly, 7 for daily weekly, etc.)
+stl = STL(temperature_series, period=8760, robust=True)
+result = stl.fit()
+
+seasonal_std = stl.seasonal.std()
+total_std = final_df["temperature"].std()
+strength = seasonal_std / total_std
+print(f"Seasonal strength (yearly): {strength:.2%}")
+
+# Plot the decomposition
+result.plot()
+plt.suptitle("Seasonal Decomposition of Temperature", fontsize=16)
+plt.tight_layout()
+plt.show()
+
+
