@@ -212,5 +212,7 @@ print(vif_result)
 
 heatmaps(final_X)
 final_df = pd.DataFrame(final_X, columns=columns)
+    
+
 
 
