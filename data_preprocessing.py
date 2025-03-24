@@ -56,7 +56,7 @@ def feature_transform(data: np.ndarray, outlier_count: list):
         # only transform data if there are outliers
         if outlier_count[feature_idx]:
             feature = data[:, feature_idx]
-            # the 3rd feature, mean_sea_level_pressure's values are too high, hence we scaled it down by 1000x
+            # the 3rd feature, mean_sea_level_pressure's values are too high, hence normalised
             if feature_idx == 2:
                 transformed_data, lambda_value = yeojohnson(normalisation(feature))
             else:
