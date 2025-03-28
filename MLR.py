@@ -1,51 +1,112 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import TimeSeriesSplit
 
 # Ensure data is sorted by time (assuming already sorted in dataset)
 
-def time_based_split(X, y, train_ratio=0.7, val_ratio=0.1, test_ratio=0.2):
-    """
-    Splits data into train, validation, and test sets while preserving time order.
-    """
-    assert train_ratio + val_ratio + test_ratio == 1.0, "Ratios must sum to 1"
+# Function to create lag variables
+def create_lagged_features(X, target_idx, N, forecast_horizon=1):
+    """Create lagged features using past N time points before the target index, for forecasting a target after forecast_horizon time points."""
+    lagged_features = []
+    target_idx_shifted = target_idx + forecast_horizon  # Shift target index by forecast horizon
+
+    # Ensure that we don't exceed available time points
+    if target_idx_shifted >= len(X):
+        raise IndexError(f"Target index {target_idx_shifted} exceeds the available data range.")
     
-    N = X.shape[0]
-    train_end = int(N * train_ratio)
-    val_end = train_end + int(N * val_ratio)
+    # Create lag features only if they are within bounds
+    for i in range(N):
+        lag_idx = target_idx_shifted - (i + 1)
+        if lag_idx < 0:
+            raise IndexError(f"Lag index {lag_idx} is out of bounds for the available data.")
+        lagged_features.append(X[lag_idx])  # Use past N values up to shifted target
+
+    return np.hstack(lagged_features)  # Stack them as features
+
+# Function to find the optimal N using validation set
+def find_optimal_N(X_train, y_train, X_val, y_val, max_N=500):
+    """Find the optimal number of past time points (N) for best prediction."""
+    best_N = 1
+    best_mse = float('inf')
+    for N in range(1, max_N + 1):
+        X_train_lagged = np.array([create_lagged_features(X_train, i, N) for i in range(N, len(X_train))])
+        y_train_lagged = y_train[N:]
+        X_val_lagged = np.array([create_lagged_features(X_val, i, N) for i in range(N, len(X_val))])
+        y_val_lagged = y_val[N:]
+
+        if X_train_lagged.shape[0] == 0 or X_val_lagged.shape[0] == 0:
+            continue
+
+        model = LinearRegression()
+        model.fit(X_train_lagged, y_train_lagged)
+        y_pred = model.predict(X_val_lagged)
+        mse = mean_squared_error(y_val_lagged, y_pred)
+
+        if mse < best_mse:
+            best_mse = mse
+            best_N = N
     
-    X_train, y_train = X[:train_end], y[:train_end]
-    X_val, y_val = X[train_end:val_end], y[train_end:val_end]
-    X_test, y_test = X[val_end:], y[val_end:]
-    
-    return X_train, X_val, X_test, y_train, y_val, y_test
+    return best_N
 
-# Split data
-X_train, X_val, X_test, y_train, y_val, y_test = time_based_split(final_X, final_y)
+# Function to train and evaluate the final model
+def train_and_evaluate(X_train, y_train, X_test, y_test, best_N, forecast_horizon=1):
+    """Train MLR model using best N and evaluate it on test set."""
+    X_train_lagged = []
+    y_train_lagged = []
+    for i in range(best_N, len(X_train)):  # Start from best_N to ensure we have enough lag data
+        try:
+            X_train_lagged.append(create_lagged_features(X_train, i, best_N, forecast_horizon))
+            y_train_lagged.append(y_train[i])
+        except IndexError:
+            continue
 
-# Train multiple linear regression model
-mlr = LinearRegression()
-mlr.fit(X_train, y_train)
+    X_train_lagged = np.array(X_train_lagged)
+    y_train_lagged = np.array(y_train_lagged)
 
-# Predictions
-y_train_pred = mlr.predict(X_train)
-y_val_pred = mlr.predict(X_val)
-y_test_pred = mlr.predict(X_test)
+    X_test_lagged = []
+    y_test_lagged = []
+    for i in range(best_N, len(X_test)):
+        try:
+            X_test_lagged.append(create_lagged_features(X_test, i, best_N, forecast_horizon))
+            y_test_lagged.append(y_test[i])
+        except IndexError:
+            continue
 
-# Model evaluation
-train_mse = mean_squared_error(y_train, y_train_pred)
-val_mse = mean_squared_error(y_val, y_val_pred)
-test_mse = mean_squared_error(y_test, y_test_pred)
+    X_test_lagged = np.array(X_test_lagged)
+    y_test_lagged = np.array(y_test_lagged)
 
-train_r2 = r2_score(y_train, y_train_pred)
-val_r2 = r2_score(y_val, y_val_pred)
-test_r2 = r2_score(y_test, y_test_pred)
+    model = LinearRegression()
+    model.fit(X_train_lagged, y_train_lagged)
+    y_pred = model.predict(X_test_lagged)
+    test_mse = mean_squared_error(y_test_lagged, y_pred)
 
-print(f"Train MSE: {train_mse:.4f}, R2: {train_r2:.4f}")
-print(f"Validation MSE: {val_mse:.4f}, R2: {val_r2:.4f}")
-print(f"Test MSE: {test_mse:.4f}, R2: {test_r2:.4f}")
+    print(f"Test MSE with N={best_N} for {forecast_horizon}-hour forecast: {test_mse}")
+    return model, y_pred
+
+# Assuming X and y are already preprocessed
+time_split_1 = int(len(final_X) * 0.7)  # 70% train
+time_split_2 = int(len(final_X) * 0.8)  # Next 10% validation, last 20% test
+X_train, y_train = final_X[:time_split_1], final_y[:time_split_1]
+X_val, y_val = final_X[time_split_1:time_split_2], final_y[time_split_1:time_split_2]
+X_test, y_test = final_X[time_split_2:], final_y[time_split_2:]
+
+
+forecast_horizon_1hr = 1
+forecast_horizon_6hr = 6
+forecast_horizon_24hr = 24
+
+# Finding optimal N for each configuration 
+#best_N_1hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_1hr)
+#best_N_6hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_6hr)
+#best_N_24hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_24hr)
+
+# Train final models using best N values
+test_model_1hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_1hr, forecast_horizon=forecast_horizon_1hr)
+test_model_6hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_6hr, forecast_horizon=forecast_horizon_6hr)
+test_model_24hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_24hr, forecast_horizon=forecast_horizon_24hr)
+
 
 # Plot predictions vs actual
 
@@ -57,4 +118,4 @@ def MLR_plot(actual_y, pred_y):
     plt.title("MLR Predictions vs Actual on Test Set")
     plt.show()
 
-# MLR_plot(y_test, y_test_pred)
+# MLR_plot(y_test, y_pred)
