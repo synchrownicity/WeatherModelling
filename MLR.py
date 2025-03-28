@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+import data_preprocessing as dp
 from sklearn.model_selection import TimeSeriesSplit
 
 # Ensure data is sorted by time (assuming already sorted in dataset)
@@ -86,26 +87,28 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, best_N, forecast_horizo
     return model, y_pred
 
 # Assuming X and y are already preprocessed
-time_split_1 = int(len(final_X) * 0.7)  # 70% train
-time_split_2 = int(len(final_X) * 0.8)  # Next 10% validation, last 20% test
-X_train, y_train = final_X[:time_split_1], final_y[:time_split_1]
-X_val, y_val = final_X[time_split_1:time_split_2], final_y[time_split_1:time_split_2]
-X_test, y_test = final_X[time_split_2:], final_y[time_split_2:]
+time_split_1 = int(len(dp.final_X) * 0.7)  # 70% train
+time_split_2 = int(len(dp.final_X) * 0.8)  # Next 10% validation, last 20% test
+X_train, y_train = dp.final_X[:time_split_1], dp.final_y[:time_split_1]
+X_val, y_val = dp.final_X[time_split_1:time_split_2], dp.final_y[time_split_1:time_split_2]
+X_test, y_test = dp.final_X[time_split_2:], dp.final_y[time_split_2:]
 
 
 forecast_horizon_1hr = 1
 forecast_horizon_6hr = 6
 forecast_horizon_24hr = 24
 
+
+print(create_lagged_features(X_train, 50000, 1000))
 # Finding optimal N for each configuration 
-#best_N_1hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_1hr)
-#best_N_6hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_6hr)
-#best_N_24hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50, forecast_horizon=forecast_horizon_24hr)
+# best_N_1hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=500)
+# best_N_6hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50)
+# best_N_24hr = find_optimal_N(X_train, y_train, X_val, y_val, max_N=50)
 
 # Train final models using best N values
-test_model_1hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_1hr, forecast_horizon=forecast_horizon_1hr)
-test_model_6hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_6hr, forecast_horizon=forecast_horizon_6hr)
-test_model_24hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_24hr, forecast_horizon=forecast_horizon_24hr)
+# test_model_1hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_1hr, forecast_horizon=forecast_horizon_1hr)
+# test_model_6hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_6hr, forecast_horizon=forecast_horizon_6hr)
+# test_model_24hr = train_and_evaluate(X_train, y_train, X_test, y_test, best_N_24hr, forecast_horizon=forecast_horizon_24hr)
 
 
 # Plot predictions vs actual
