@@ -121,7 +121,7 @@ k24 = 24
 
 
 # Finding optimal N for each configuration 
-#best_N_1hr = find_optimal_N(X_train, y_train, X_val, y_val, k = k1)
+best_N_1hr = find_optimal_N(X_train, y_train, X_val, y_val, k = k1)
 #best_N_6hr = find_optimal_N(X_train, y_train, X_val, y_val, k = k6)
 #best_N_24hr = find_optimal_N(X_train, y_train, X_val, y_val, k = k24)
 
