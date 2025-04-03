@@ -56,7 +56,7 @@ def feature_transform(data: np.ndarray, outlier_count: list):
         # only transform data if there are outliers
         if outlier_count[feature_idx]:
             feature = data[:, feature_idx]
-            # the 3rd feature, mean_sea_level_pressure's values are too high, hence we scaled it down by 1000x
+            # the 3rd feature, mean_sea_level_pressure's values are too high, hence normalised
             if feature_idx == 2:
                 transformed_data, lambda_value = yeojohnson(normalisation(feature))
             else:
@@ -203,15 +203,15 @@ final_X = normalisation(final_X)
 # decomposed_X = seasonal_decompostion(transformed_X[:, [0, 1, 2, 3, 4]], 24)[0]
 # multi_plots(decomposed_X)
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
     # VIF Check
-    columns = pd_df.columns.tolist()[:-1:1]
-    print(columns)
-    vif_result = compute_vif(final_X, columns)
-    print(vif_result)
+    #columns = pd_df.columns.tolist()[:-1:1]
+    #print(columns)
+    #vif_result = compute_vif(final_X, columns)
+    #print(vif_result)
 
-    heatmaps(final_X)
-    final_df = pd.DataFrame(final_X, columns=columns)
+    #heatmaps(final_X)
+    #final_df = pd.DataFrame(final_X, columns=columns)
     
 
 
