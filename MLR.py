@@ -31,31 +31,43 @@ def create_lagged_features(X, target_idx, N, k):
 
 # Function to find the optimal N using validation set
 ## can adjust the range of N values 
-def find_optimal_N(X_train, y_train, X_val, y_val, min_N=100, max_N=500, k=1):
+def find_optimal_N(X_train, y_train, X_val, y_val, min_N=100, max_N=101, k=1):
     """Find the optimal number of past time points (N) for best prediction using a forecast horizon."""
+    
     best_N = min_N
     best_mse = float('inf')
-    for N in range(min_N, max_N + 1):
-        X_train_lagged, y_train_lagged = [], []
-        X_val_lagged, y_val_lagged = [], []
 
-        for i in range(N, len(X_train)):
+    # Precompute lagged features ONCE for all N values
+    train_features = {N: [] for N in range(min_N, max_N + 1)}
+    val_features = {N: [] for N in range(min_N, max_N + 1)}
+
+    # Store y_lagged values separately to avoid recomputation
+    y_train_lagged_dict = {N: [] for N in range(min_N, max_N + 1)}
+    y_val_lagged_dict = {N: [] for N in range(min_N, max_N + 1)}
+
+    # Precompute train set lagged features
+    for i in range(max_N, len(X_train) - k):
+        for N in range(min_N, max_N + 1):
             features = create_lagged_features(X_train, i, N, k)
             if features is not None:
-                X_train_lagged.append(features.flatten())
-                y_train_lagged.append(y_train[i])
-        
-        for i in range(N, len(X_val)):
+                train_features[N].append(features.flatten())
+                y_train_lagged_dict[N].append(y_train[i + k])
+
+    # Precompute validation set lagged features
+    for i in range(max_N, len(X_val) - k):
+        for N in range(min_N, max_N + 1):
             features = create_lagged_features(X_val, i, N, k)
             if features is not None:
-                X_val_lagged.append(features.flatten())
-                y_val_lagged.append(y_val[i])
+                val_features[N].append(features.flatten())
+                y_val_lagged_dict[N].append(y_val[i + k])
 
-        if len(X_train_lagged) == 0 or len(X_val_lagged) == 0:
-            continue
+    # Iterate over N and fit models efficiently
+    for N in range(min_N, max_N + 1):
+        if len(train_features[N]) == 0 or len(val_features[N]) == 0:
+            continue  # Skip if there aren't enough valid features
 
-        X_train_lagged, y_train_lagged = np.array(X_train_lagged), np.array(y_train_lagged)
-        X_val_lagged, y_val_lagged = np.array(X_val_lagged), np.array(y_val_lagged)
+        X_train_lagged, y_train_lagged = np.array(train_features[N]), np.array(y_train_lagged_dict[N])
+        X_val_lagged, y_val_lagged = np.array(val_features[N]), np.array(y_val_lagged_dict[N])
 
         model = LinearRegression()
         model.fit(X_train_lagged, y_train_lagged)
@@ -65,8 +77,9 @@ def find_optimal_N(X_train, y_train, X_val, y_val, min_N=100, max_N=500, k=1):
         if mse < best_mse:
             best_mse = mse
             best_N = N
-    
+
     return best_N
+
 
 
 # Function to train the model
