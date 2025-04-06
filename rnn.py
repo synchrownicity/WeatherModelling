@@ -5,6 +5,7 @@ import tensorflow as tf
 from keras import Sequential
 from keras.layers import Dense, SimpleRNN, Input
 from keras.preprocessing.sequence import TimeseriesGenerator
+from keras.optimizers import Adam
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import json
@@ -42,25 +43,26 @@ last_row_in_train_val_X = train_val_X[-1, :]; print(f"Last row index in (train +
 first_row_in_test_X = test_X[0, :]; print(f"First row index in test set: {check_idx(first_row_in_test_X, dp.final_X)}\n")
 
 # Hyperparameters to be tuned
-N = [12, 24, 168, 720] # half-daily, daily, weekly, monthly, yearly
+N = [24, 168, 720] # half-daily, daily, weekly, monthly, yearly
 delays = [1, 6, 24]
-base_lr = [1e-7, 1e-6, 1e-5, 1e-4, 1e-3]
-seq_len = [] # depends on chosen N as it has to be <= N
+base_lr = [1e-6, 1e-5, 1e-4]
 
 # Get the max split (ie minimum Train size in starting fold) given train_val size (F), gap (G) and size of validation set (V)
-def get_TSS_max_split(G, F=train_val_N, V=val_N):
-    max_split = (F-2*G-V)//V # Floor division to round down to nearest int
-    return max_split
+# def get_TSS_max_split(G, F=train_val_N, V=val_N):
+#     max_split = (F-2*G-V)//V # Floor division to round down to nearest int
+#     return max_split
+## Max_split is 6 assuming size of train set is >= validate set --> chose 4 splits instead due to time constraints.
+
 # 12_0_model_weights
 #regex
-def train_model(N, delays, train_val_X=train_val_X, train_val_y=train_val_y, test_X=test_X, test_y=test_y):
+def rnn_model(N, delays, base_lr=[0.0005], train_val_X=train_val_X, train_val_y=train_val_y, test_X=test_X, test_y=test_y):
     for delay in delays:
         # In each delay
         for n in N:
             # For each N parameters
             gap = n + delay
             # Split dataset into train and val
-            max_split = get_TSS_max_split(G=gap)
+            max_split = 4
             tss = TimeSeriesSplit(n_splits=max_split, test_size=9774, gap=gap)
 
             for idx, (train_index, val_index) in enumerate(tss.split(train_val_X)):
@@ -95,76 +97,33 @@ def train_model(N, delays, train_val_X=train_val_X, train_val_y=train_val_y, tes
                     SimpleRNN(32),
                     Dense(1)
                     ])
-                model.compile(optimizer='adam',loss='mse', 
+                
+                # vary learning rate
+                for lr in base_lr:
+                    model.compile(optimizer=Adam(learning_rate=lr),loss='mse', 
                                     metrics=[tf.keras.metrics.RootMeanSquaredError(), tf.keras.metrics.MeanAbsoluteError()])
-                history = model.fit(train_generator, validation_data=val_generator, epochs=1)
+                    # train-validate model (no early stopping)
+                    history = model.fit(train_generator, validation_data=val_generator, epochs=40)
 
-                # test model on test set
-                pred = model.predict(test_generator)
-                y_true = y_test_window[n:]
-                test_rmse = np.sqrt(mean_squared_error(y_true, pred))
-                test_mae = mean_absolute_error(y_true, pred)
+                    # test model on test set
+                    pred = model.predict(test_generator)
+                    y_true = y_test_window[n:]
+                    test_rmse = np.sqrt(mean_squared_error(y_true, pred))
+                    test_mae = mean_absolute_error(y_true, pred)
 
-                # Add the test metrics to the history dictionary
-                history.history['test_root_mean_squared_error'] = test_rmse
-                history.history['test_mean_absolute_error'] = test_mae
+                    # Add the test metrics to the history dictionary
+                    history.history['test_root_mean_squared_error'] = test_rmse
+                    history.history['test_mean_absolute_error'] = test_mae
 
-                # # 1. Saving the model weights
-                # model_train.save_weights(f"model_weights{idx}.h5")  # Save weights only
+                    # # 1. Saving the model weights
+                    # model_train.save_weights(f"model_weights{idx}.h5")  # Save weights only
 
-                # # 2. Saving the full model (architecture + weights)
-                model.save(f"Full model_N{n}_delay{delay}_{idx}th fold.h5")  # Saves the whole model including architecture and weights
+                    # # 2. Saving the full model (architecture + weights)
+                    model.save(f"Full model_N{n}_delay{delay}_{idx}th fold_base lr{lr}.h5")  # Saves the whole model including architecture and weights
 
-                # 3. Saving the training, validation, test history for each fold (RMSE, MAE, etc.)
-                with open(f"Training history_N{n}_delay{delay}_{idx}th fold.json", "w") as f:
-                    json.dump(history.history, f)
+                    # 3. Saving the training, validation, test history for each fold (RMSE, MAE, etc.)
+                    with open(f"Training history_N{n}_delay{delay}_{idx}th fold_base lr{lr}.json", "w") as f:
+                        json.dump(history.history, f)
 
 
-train_model(N=N, delays=delays)
-
-# def model_best_N(X, y, N, val_N = val_N):
-#     train_rmse = []
-#     val_rmse = []
-
-#     for n in N:
-#         X_seq, y_seq = create_sequences(X, y, n)
-#         # X = np.expand_dims(X, axis=1)  # Add channel dim for RNN (samples, timesteps, features)
-#         max_fold = int((len(y)-val_N)/val_N)
-
-#         # TimeSeriesSplit with gap = N
-#         tscv = TimeSeriesSplit(n_splits=max_fold, gap=n+1)
-        
-#         fold_train_rmse = []
-#         fold_val_rmse = []
-        
-#         for train_idx, val_idx in tscv.split(X):
-#             # Split data
-#             X_train, X_val = X_seq[train_idx,:], X_seq[val_idx,:]
-#             y_train, y_val = y_seq[train_idx], y_seq[val_idx]
-#             print(np.shape(X_train))
-            
-#             # Vanilla RNN model, start with 1 hidden layer
-#             # model = tf.keras.Sequential([
-#             #     tf.keras.layers.SimpleRNN(32, input_shape=(n, 6)),
-#             #     tf.keras.layers.Dense(1)
-#             # ])
-            
-#             # model.compile(optimizer='adam', loss='mse')
-#             # # start train
-#             # model.fit(X_train, y_train, epochs=10, verbose=0)
-
-#             # # Predictions
-#             # train_pred = model.predict(X_train).flatten()
-#             # val_pred = model.predict(X_val).flatten()
-            
-#             # # Calculate RMSE
-#             # fold_train_rmse.append(np.sqrt(mean_squared_error(y_train, train_pred)))
-#             # fold_val_rmse.append(np.sqrt(mean_squared_error(y_val, val_pred)))
-        
-#         # Average RMSE across folds
-#         train_rmse.append(np.mean(fold_train_rmse))
-#         val_rmse.append(np.mean(fold_val_rmse))
-#     return train_rmse, val_rmse
-
-# model_best_N()
-# rmse_train_N, rmse_val_N = model_best_N(train_val_X, train_val_y, N)
+rnn_model(N=N, delays=delays)
