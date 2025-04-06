@@ -1,3 +1,7 @@
+## **Forecasting the Unseen: Predicting Relative Humidity With Classical and Deep Learning Approaches**
+_Team 2: Genie Tay Ting, Hui Yu Chao, Gan Zhi Yu Charlene, Yeo Jaye Lin_
+
+## **How To Run The Project** 
 Our submission contains 2 main folders:
 - Code Folder (contains our `IT1244_code_file.ipynb` + other source code)
 - Model and Dataset Folder (contains all of our models and `weather.csv` dataset)
