@@ -6,7 +6,7 @@ Our submission contains 2 main folders:
 - Code Folder (contains our `IT1244_code_file.ipynb` + other source code)
 - Model and Dataset Folder (contains all of our models and `weather.csv` dataset)
 
-Please first ensure you have the dependencies installed to the versions are listed in the **requirements.txt** file.
+Please first ensure you have the dependencies installed to the versions are listed in the `requirements.txt` file.
 
 **To run our `.ipynb` code file, please take the following steps.**
 If you are running our `.ipynb` file on Jupyter Notebook:
