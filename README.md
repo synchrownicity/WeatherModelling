@@ -3,7 +3,7 @@ _Team 2: Genie Tay Ting, Hui Yu Chao, Gan Zhi Yu Charlene, Yeo Jaye Lin_
 
 ## **How To Run The Project** 
 Our submission contains 2 main folders:
-- Code Folder (contains our `IT1244_code_file.ipynb` + other source code)
+- Code Folder (contains our `IT1244_Team 2_Code File.ipynb` + other source code)
 - Model and Dataset Folder (contains all of our models and `weather.csv` dataset)
 
 Please first ensure you have the dependencies installed to the versions are listed in the `requirements.txt` file.
