@@ -16,6 +16,7 @@ If you are running our `.ipynb` file on Jupyter Notebook:
 
 If you are running our `.ipynb` file on Google Colab:
 - Take **all** of the files present in the Model and Dataset folder, and place them into the _Files_ tab on the left sidebar.
+- Take also the `data_processing.py` file present in our Code Folder, and also place it into the _Files_ tab on the left sidebar.
 - Execute the `.ipynb` in code block order (top to bottom) to load all of our models and view our plots.
 
 Please note that the `.ipynb` code file only contains the relevant code needed to visualise the various parameters and features of our model. If you would like to replicate the models on your own, please run the other source codes present in the Code Folder (those with a `.py` extension) to create the different models as labelled on your local repository. Note that a GPU is recommended when running the `.py` codes, especially for our deep learning models RNN and LSTM source code files.
