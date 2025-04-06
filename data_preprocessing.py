@@ -75,7 +75,7 @@ def seasonal_decompostion(data: np.ndarray, period: int):
         seasonal_arr.append(stl.seasonal)
         residual_arr.append(stl.resid)
         seasonal_std = stl.seasonal.std()
-        total_std = final_df["temperature"].std()
+        total_std = feature["temperature"].std()
         strength = seasonal_std / total_std
         print(f"Seasonal strength (yearly): {strength:.2%}")
     trend = np.array(trend_arr).T
