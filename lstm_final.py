@@ -3,9 +3,9 @@ import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 import tensorflow as tf
 from keras import Sequential
-from keras.layers import Dense, LSTM, Input
-from keras.preprocessing.sequence import TimeseriesGenerator
-from keras.optimizers import Adam
+from tensorflow.keras.layers import Dense, LSTM, Input
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import json
@@ -15,12 +15,12 @@ print("Available devices:", tf.config.list_physical_devices())
 
 # Optional: Force GPU usage if available
 physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.set_visible_devices(physical_devices[0], 'GPU')
 
 if physical_devices:
+    tf.config.set_visible_devices(physical_devices[0], 'GPU')
     print("Using device:", physical_devices[0])
 else:
-    print("No GPU detected.")
+    print("No GPU detected. Running on CPU.")
 
 # Number of data points in train-validation and test sets
 data_N = len(dp.final_y); print(f"\nTotal no. of datapoints: {data_N}")
@@ -94,7 +94,7 @@ def lstm_model(N, delays, base_lr=[0.0005], train_val_X=train_val_X, train_val_y
                 # fit training and validation data into model
                 model = Sequential([
                     Input(shape=(n, 6)),
-                    LSTM(32,
+                    LSTM(16,
                          return_sequences=False,
                          recurrent_dropout=0.2),
                     Dense(1)
@@ -105,7 +105,7 @@ def lstm_model(N, delays, base_lr=[0.0005], train_val_X=train_val_X, train_val_y
                     model.compile(optimizer=Adam(learning_rate=lr),loss='mse', 
                                     metrics=[tf.keras.metrics.RootMeanSquaredError(), tf.keras.metrics.MeanAbsoluteError()])
                     # train-validate model (no early stopping)
-                    history = model.fit(train_generator, validation_data=val_generator, epochs=40)
+                    history = model.fit(train_generator, validation_data=val_generator, epochs=20)
 
                     # test model on test set
                     pred = model.predict(test_generator)
