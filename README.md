@@ -10,7 +10,7 @@ Please first ensure you have the dependencies installed to the versions are list
 
 **To run our `.ipynb` code file, please take the following steps.**
 If you are running our `.ipynb` file on Jupyter Notebook:
-- Take **all** of the items present in the Model and Dataset folder, and place them in the same directory as the `ipynb` file.
+- Take **all** of the files present in the Model and Dataset folder, and place them in the same directory as the `ipynb` file.
 - Execute the `.ipynb` in code block order (top to bottom) to load all of our models and view our plots.
 
 If you are running our `.ipynb` file on Google Colab:
