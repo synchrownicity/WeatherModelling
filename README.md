@@ -2,10 +2,24 @@
 _Team 2: Genie Tay Ting, Hui Yu Chao, Gan Zhi Yu Charlene, Yeo Jaye Lin_
 
 ## **Project Report**
-Here is the link to our project report, detailing our key findings and figures related to this project. [IT1244 Project Report.pdf](https://github.com/user-attachments/files/21361057/IT1244.Project.Report.pdf)
-
+Below is the link to our project report, detailing our key findings and figures related to this project. 
+[IT1244 Project Report.pdf](https://github.com/user-attachments/files/21361057/IT1244.Project.Report.pdf)
 
 ## **Overview**
+This project explores four machine learning techniques for **hourly forecasting of relative humidity** in Austrailia, using meteorological data collected near Monash University from **1 Jan 2010** to **31 May 2021**.
+
+| Model Type     | Algorithms Implemented            | Key Notes                                       |
+|----------------|-----------------------------------|-------------------------------------------------|
+| Classical      | Multiple Linear Regression and Random Forest      | Baseline and ensemble benchmarks                |                                                
+| Deep Learning  | Recurrent Neural Network (RNN) and Long Short-Term Memory (LSTM)   | Sequence-aware models for time-series trends    |                                          
+
+
+Appropriate data engineering techniques and hyperparameter tuning were implemented where necessary to minimise errors and bring about accurate prediction. Predictions were visualised against ground truth in our test dataset to inspect trend fidelity.
+
+### **Key Findings**
+Our analysis revealed that the LSTM mdodel delivered the highest accuracy, achieving the lowest RMSE and MAE, while most faithfully capturing diurnal and seasonal humidity patterns.
+
+This highlights the value of sequence-aware deep learning fro environmental forecasting, and provide a reproducible framework that can be extended to other climate variables or locations.
 
 ## **How To Run The Project** 
 Our submission contains 2 main folders:
