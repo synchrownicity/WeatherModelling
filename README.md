@@ -1,6 +1,12 @@
 ## **Forecasting the Unseen: Predicting Relative Humidity With Classical and Deep Learning Approaches**
 _Team 2: Genie Tay Ting, Hui Yu Chao, Gan Zhi Yu Charlene, Yeo Jaye Lin_
 
+## **Project Report**
+Here is the link to our project report, detailing our key findings and figures related to this project. [IT1244 Project Report.pdf](https://github.com/user-attachments/files/21361057/IT1244.Project.Report.pdf)
+
+
+## **Overview**
+
 ## **How To Run The Project** 
 Our submission contains 2 main folders:
 - **Code Folder** (contains our `IT1244_Team 2_Code File.ipynb` + other source code)
